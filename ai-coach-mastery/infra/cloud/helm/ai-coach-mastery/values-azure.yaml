@@ -1,0 +1,15 @@
+# Azure overlay — apply with: helm install -f values.yaml -f values-azure.yaml
+# URLs/secrets come from Terraform outputs (modules/azure) via the pipeline.
+global:
+  imageRegistry: "REPLACE.azurecr.io"
+
+config:
+  storageProvider: azure_blob
+  llmProvider: azure_openai        # or mock while validating the deployment
+  dbUrl: "jdbc:postgresql://REPLACE.postgres.database.azure.com:5432/aicoach?sslmode=require"
+  aiDbUrl: "postgresql+psycopg://REPLACE.postgres.database.azure.com:5432/aicoach?sslmode=require"
+  redisUrl: "rediss://REPLACE.redis.cache.windows.net:6380/0"
+
+ingress:
+  className: azure-application-gateway
+  host: ai-coach.REPLACE.example.com

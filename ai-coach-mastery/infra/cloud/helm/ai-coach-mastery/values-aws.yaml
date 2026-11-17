@@ -1,0 +1,17 @@
+# AWS overlay — apply with: helm install -f values.yaml -f values-aws.yaml
+# URLs/secrets come from Terraform outputs (modules/aws) via the pipeline.
+global:
+  imageRegistry: "REPLACE.dkr.ecr.REGION.amazonaws.com"
+
+config:
+  storageProvider: s3
+  llmProvider: bedrock             # or mock while validating the deployment
+  dbUrl: "jdbc:postgresql://REPLACE.rds.amazonaws.com:5432/aicoach?sslmode=require"
+  aiDbUrl: "postgresql+psycopg://REPLACE.rds.amazonaws.com:5432/aicoach?sslmode=require"
+  redisUrl: "rediss://REPLACE.cache.amazonaws.com:6379/0"
+  s3Endpoint: ""                   # empty => default AWS S3 endpoint
+  s3Bucket: "ai-coach-mastery-prod-artifacts"
+
+ingress:
+  className: alb
+  host: ai-coach.REPLACE.example.com

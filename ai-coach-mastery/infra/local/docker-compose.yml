@@ -1,0 +1,166 @@
+# =============================================================================
+# AI Coach Mastery — Local stack (cloud-agnostic, zero external keys)
+# Run via: make up   (from repo root)
+# =============================================================================
+name: ai-coach-mastery
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: acm-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aicoach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aicoach_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-aicoach}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./seed:/seed:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aicoach} -d ${POSTGRES_DB:-aicoach}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [acm]
+
+  redis:
+    image: redis:7-alpine
+    container_name: acm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [acm]
+
+  minio:
+    image: minio/minio:latest
+    container_name: acm-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [acm]
+
+  # One-shot job: creates the artifacts bucket then exits.
+  minio-init:
+    image: minio/mc:latest
+    container_name: acm-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${S3_ACCESS_KEY:-minioadmin} ${S3_SECRET_KEY:-minioadmin} &&
+      mc mb --ignore-existing local/${S3_BUCKET:-ai-coach-artifacts} &&
+      echo 'MinIO bucket ready.'"
+    networks: [acm]
+
+  core-api:
+    build:
+      context: ../../core-api
+      dockerfile: Dockerfile
+    container_name: acm-core-api
+    environment:
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/aicoach}
+      DB_USER: ${POSTGRES_USER:-aicoach}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-aicoach_local_dev}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      AI_ENGINE_URL: http://ai-engine:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks: [acm]
+
+  ai-engine:
+    build:
+      context: ../../ai-engine
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: acm-ai-engine
+    environment:
+      DB_URL: ${AI_DB_URL:-postgresql+psycopg://aicoach:aicoach_local_dev@postgres:5432/aicoach}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LOCAL_STORAGE_PATH: ${LOCAL_STORAGE_PATH:-/data/artifacts}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_BUCKET: ${S3_BUCKET:-ai-coach-artifacts}
+    ports:
+      - "8000:8000"
+    volumes:
+      - artifacts-data:/data/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [acm]
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      target: dev
+    container_name: acm-frontend
+    environment:
+      CORE_API_URL: http://core-api:8080
+      AI_ENGINE_URL: http://ai-engine:8000
+    ports:
+      - "4200:4200"
+    depends_on:
+      core-api:
+        condition: service_started
+      ai-engine:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4200 >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    networks: [acm]
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
+  artifacts-data:
+
+networks:
+  acm:
+    driver: bridge

@@ -1,0 +1,15 @@
+# GCP overlay — apply with: helm install -f values.yaml -f values-gcp.yaml
+# URLs/secrets come from Terraform outputs (modules/gcp) via the pipeline.
+global:
+  imageRegistry: "REGION-docker.pkg.dev/REPLACE-PROJECT/ai-coach-mastery"
+
+config:
+  storageProvider: gcs
+  llmProvider: vertex              # or mock while validating the deployment
+  dbUrl: "jdbc:postgresql://REPLACE:5432/aicoach?sslmode=require"
+  aiDbUrl: "postgresql+psycopg://REPLACE:5432/aicoach?sslmode=require"
+  redisUrl: "redis://REPLACE:6379/0"
+
+ingress:
+  className: gce
+  host: ai-coach.REPLACE.example.com

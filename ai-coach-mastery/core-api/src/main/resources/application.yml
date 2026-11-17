@@ -1,0 +1,42 @@
+# =============================================================================
+# core-api — 12-factor configuration (all env-driven, local-safe defaults)
+# =============================================================================
+spring:
+  application:
+    name: core-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aicoach}
+    username: ${DB_USER:aicoach}
+    password: ${DB_PASSWORD:aicoach_local_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate        # Flyway owns the schema; Hibernate only validates
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: core
+  flyway:
+    enabled: true
+    schemas: core
+    default-schema: core
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true           # exposes /actuator/health/liveness & /readiness for K8s
+
+app:
+  ai-engine-url: ${AI_ENGINE_URL:http://localhost:8000}
+  redis-url: ${REDIS_URL:redis://localhost:6379/0}
+  # Auto-seed 4 showcase engagements on first startup when DB is empty.
+  seed-demo-data: ${APP_SEED_DEMO_DATA:true}

@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled }}
+# Single ingress: SPA at /, APIs routed to backend services — same contract
+# the local nginx/proxy config implements.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "acm.fullname" . }}
+  labels:
+    {{- include "acm.labels" . | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api/core
+            pathType: Prefix
+            backend:
+              service:
+                name: core-api
+                port:
+                  number: {{ .Values.coreApi.port }}
+          - path: /api/ai
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-engine
+                port:
+                  number: {{ .Values.aiEngine.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: {{ .Values.frontend.port }}
+{{- end }}

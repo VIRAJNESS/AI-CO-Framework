@@ -1,0 +1,42 @@
+# Environment / secrets
+.env
+*.pem
+*.key
+
+# Node / Angular
+node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Java / Maven
+core-api/target/
+*.class
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+ai-engine/artifacts/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# Helm
+*.tgz
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Docker local data
+infra/local/.data/

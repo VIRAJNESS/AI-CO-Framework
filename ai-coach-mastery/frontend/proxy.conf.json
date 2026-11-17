@@ -1,0 +1,26 @@
+{
+  "/api/core": {
+    "target": "http://core-api:8080",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/api/core": "/api/v1" }
+  },
+  "/api/ai": {
+    "target": "http://ai-engine:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/api/ai": "/api/v1" }
+  },
+  "/health/core": {
+    "target": "http://core-api:8080",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/health/core": "/actuator/health" }
+  },
+  "/health/ai": {
+    "target": "http://ai-engine:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/health/ai": "/health" }
+  }
+}

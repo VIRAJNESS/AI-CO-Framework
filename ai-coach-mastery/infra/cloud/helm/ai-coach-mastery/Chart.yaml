@@ -1,0 +1,15 @@
+apiVersion: v2
+name: ai-coach-mastery
+description: >
+  Provider-neutral Helm chart for the AI Coach Mastery platform
+  (frontend, core-api, ai-engine). Cloud specifics are injected purely
+  through values files (values-azure.yaml, values-aws.yaml, values-gcp.yaml)
+  and 12-factor environment variables.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - ai-coaching
+  - cloud-agnostic
+maintainers:
+  - name: AI Coach Mastery Platform Team

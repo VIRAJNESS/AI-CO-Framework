@@ -1,0 +1,20 @@
+# Test profile: in-memory H2 in PostgreSQL compatibility mode; Flyway disabled
+# (Hibernate creates the schema) so tests need no Docker/Postgres.
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;INIT=CREATE SCHEMA IF NOT EXISTS core
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: core
+  flyway:
+    enabled: false
+
+# Keep unit/web tests deterministic — seeding is covered by DataSeederTest.
+app:
+  seed-demo-data: false

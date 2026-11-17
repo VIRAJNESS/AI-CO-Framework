@@ -1,0 +1,61 @@
+# =============================================================================
+# Default (provider-neutral) values. Override per cloud with
+# values-azure.yaml / values-aws.yaml / values-gcp.yaml.
+# All runtime behavior is driven by 12-factor env vars.
+# =============================================================================
+
+global:
+  imageRegistry: ""           # e.g. myacr.azurecr.io / 123.dkr.ecr... / region-docker.pkg.dev/...
+  imagePullPolicy: IfNotPresent
+
+# 12-factor configuration surfaced to every service (via ConfigMap)
+config:
+  storageProvider: local      # local | s3 | azure_blob | gcs
+  llmProvider: mock           # mock | openai | anthropic | azure_openai | bedrock | vertex
+  dbUrl: "jdbc:postgresql://postgres:5432/aicoach"
+  aiDbUrl: "postgresql+psycopg://aicoach:aicoach@postgres:5432/aicoach"
+  redisUrl: "redis://redis:6379/0"
+  s3Endpoint: ""
+  s3Bucket: "ai-coach-artifacts"
+
+# Secret material is NEVER stored in the chart — reference an existing secret
+# created by your pipeline (kubectl create secret / external-secrets operator).
+existingSecret: "ai-coach-mastery-secrets"
+
+frontend:
+  enabled: true
+  image: ai-coach-mastery/frontend
+  tag: "0.1.0"
+  port: 80
+  replicas: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 250m, memory: 256Mi }
+
+coreApi:
+  enabled: true
+  image: ai-coach-mastery/core-api
+  tag: "0.1.0"
+  port: 8080
+  replicas: 2
+  healthPath: /actuator/health
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+
+aiEngine:
+  enabled: true
+  image: ai-coach-mastery/ai-engine
+  tag: "0.1.0"
+  port: 8000
+  replicas: 2
+  healthPath: /health
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1.5Gi }
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ai-coach-mastery.local
+  tls: []
